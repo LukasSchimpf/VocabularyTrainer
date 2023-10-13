@@ -1,0 +1,121 @@
+#!/usr/bin/python3
+
+import curses
+import sys
+from curses import wrapper
+
+current_deck = "spanish"
+
+def menu(stdscr, heading, options, functions):
+    key = ''
+    selection = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(heading)
+
+        #Show all options
+        for i in range(len(options)):
+            stdscr.addstr("\n"+options[i], curses.color_pair(1) if i == selection else curses.color_pair(2));
+
+        key = stdscr.getkey()
+
+
+        if key == 'j' and selection < len(options)-1:
+            selection = selection + 1
+
+        elif key == 'k' and selection > 0:
+            selection = selection - 1
+        
+        elif key == '\n':
+            functions[selection](stdscr)
+
+
+        stdscr.refresh()
+
+def donothing(stdscr):
+    return
+
+def selectDeck(stdscr):
+    menu(stdscr, "Select a deck:", ["French", "Spanish"], [donothing, donothing])
+
+def main(stdscr):
+    #selected
+    curses.init_pair(1,curses.COLOR_WHITE, curses.COLOR_BLUE)
+    #unselected
+    curses.init_pair(2,curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+    #correct
+    curses.init_pair(3,curses.COLOR_GREEN, curses.COLOR_BLACK)
+    #wrong
+    curses.init_pair(4,curses.COLOR_RED, curses.COLOR_BLACK)
+
+    menu(stdscr, "Welocome to the vocab training app", ["Select Deck", "Start Training (" + current_deck + ")", "Exit"], [selectDeck, train, quitApp])
+
+def quitApp(stdscr):
+    sys.exit(0)
+
+def strcmp(str1, str2):
+    pass
+
+def charrtostr(charr):
+    return "".join([str(i) for a,i in enumerate(charr)])
+    
+def train(stdscr):
+    column = [
+                ["Hello", "Hola"],
+                ["Good Morning", "Buenas Dias"],
+                ["How are you", "Cómo estas"],
+            ]
+
+    key = ''
+
+    for vocabPair in column:
+
+        currentText = []
+
+        while True:
+            stdscr.clear()
+
+            stdscr.addstr(0,0,"Word: "+ vocabPair[0])
+            stdscr.addstr(1,0,"Translation:")
+            
+            for char in currentText:
+                stdscr.addstr(char)
+
+            stdscr.refresh()
+            key = stdscr.getkey()
+            
+            if key == '\n':
+                break
+
+            # if any backspace key
+            if key in ("KEY_BACKSPACE", '\b', "\x7f"):
+                if len(currentText) > 0:
+                    currentText.pop()
+            else:
+                currentText.append(key)
+
+        if charrtostr(currentText).casefold() == vocabPair[1].casefold():
+            stdscr.addstr(1,0,"Translation:")
+            
+            for char in currentText:
+                stdscr.addstr(char, curses.color_pair(3))
+
+            stdscr.refresh()
+
+        else:
+            stdscr.addstr(1,0,"Translation:")
+            
+            for char in currentText:
+                stdscr.addstr(char, curses.color_pair(4))
+
+            stdscr.addstr(2,0,"Correct Translation: ")
+            stdscr.addstr(vocabPair[1], curses.color_pair(3))
+
+            stdscr.refresh()
+
+        stdscr.getkey()
+
+if __name__ == '__main__':
+    wrapper(main)
