@@ -3,10 +3,11 @@
 import curses
 import sys
 from curses import wrapper
+import os
 
 current_deck = "spanish"
 
-def menu(stdscr, heading, options, functions):
+def display_menu(stdscr, heading, options):
     key = ''
     selection = 0
 
@@ -28,16 +29,87 @@ def menu(stdscr, heading, options, functions):
             selection = selection - 1
         
         elif key == '\n':
-            functions[selection](stdscr)
-
+            return selection
 
         stdscr.refresh()
 
-def donothing(stdscr):
-    return
+def text_input(stdscr, heading, prompt):
+    current_text = []
+
+    while True:
+        stdscr.clear()
+        if heading != "":
+            stdscr.addstr(heading + "\n")
+
+        if prompt != "":
+            stdscr.addstr(prompt)
+            for char in current_text:
+                stdscr.addstr(char)
+
+        stdscr.refresh()
+
+        key = stdscr.getkey()
+        
+        if key == '\n':
+            return charrtostr(current_text)
+
+        # if any backspace key
+        if key in ("KEY_BACKSPACE", '\b', "\x7f"):
+            if len(current_text) > 0:
+                current_text.pop()
+        else:
+            current_text.append(key)
+
+def mainMenu(stdscr):
+    options = ["Select Deck", "Start training (" + current_deck + ")", "Exit"]
+
+    while True:
+        selection = display_menu(stdscr, "Welocome to the vocab training app", options)
+
+        if selection == 0:
+            selectDeck(stdscr)
+
+        elif selection == 1:
+            training_loop(stdscr)
+
+        elif selection == 2:
+            return
 
 def selectDeck(stdscr):
-    menu(stdscr, "Select a deck:", ["French", "Spanish"], [donothing, donothing])
+    decks = getDecks("./decks/")
+
+    options = ["New Deck"] + decks + ["Back"]
+
+    selection = display_menu(stdscr, "Select a deck", options)
+
+    if options[selection] == "New Deck":
+        text_input(stdscr, "", "Deck Name:")
+        return
+
+    elif options[selection] == "Back":
+        return
+
+    else:
+        current_deck = options[selection]
+
+def getDecks(path):
+    decks = []
+
+    if os.path.isdir(path):
+        for file in os.listdir(path):
+            filename = os.fsdecode(file)
+            decks.push(filename)
+    else:
+        print("No \"Decks\" directory found, creating it.")
+        os.makedirs(path)
+
+    return decks
+
+def loadDeck(path):
+    pass
+
+def createDeck(name):
+    pass
 
 def main(stdscr):
     #selected
@@ -50,10 +122,7 @@ def main(stdscr):
     #wrong
     curses.init_pair(4,curses.COLOR_RED, curses.COLOR_BLACK)
 
-    menu(stdscr, "Welocome to the vocab training app", ["Select Deck", "Start Training (" + current_deck + ")", "Exit"], [selectDeck, train, quitApp])
-
-def quitApp(stdscr):
-    sys.exit(0)
+    mainMenu(stdscr)
 
 def strcmp(str1, str2):
     pass
@@ -61,7 +130,7 @@ def strcmp(str1, str2):
 def charrtostr(charr):
     return "".join([str(i) for a,i in enumerate(charr)])
     
-def train(stdscr):
+def training_loop(stdscr):
     column = [
                 ["Hello", "Hola"],
                 ["Good Morning", "Buenas Dias"],
@@ -72,34 +141,12 @@ def train(stdscr):
 
     for vocabPair in column:
 
-        currentText = []
+        current_text = text_input(stdscr, vocabPair[0], "Translation:")
 
-        while True:
-            stdscr.clear()
-
-            stdscr.addstr(0,0,"Word: "+ vocabPair[0])
+        if current_text.casefold() == vocabPair[1].casefold():
             stdscr.addstr(1,0,"Translation:")
             
-            for char in currentText:
-                stdscr.addstr(char)
-
-            stdscr.refresh()
-            key = stdscr.getkey()
-            
-            if key == '\n':
-                break
-
-            # if any backspace key
-            if key in ("KEY_BACKSPACE", '\b', "\x7f"):
-                if len(currentText) > 0:
-                    currentText.pop()
-            else:
-                currentText.append(key)
-
-        if charrtostr(currentText).casefold() == vocabPair[1].casefold():
-            stdscr.addstr(1,0,"Translation:")
-            
-            for char in currentText:
+            for char in current_text:
                 stdscr.addstr(char, curses.color_pair(3))
 
             stdscr.refresh()
@@ -107,7 +154,7 @@ def train(stdscr):
         else:
             stdscr.addstr(1,0,"Translation:")
             
-            for char in currentText:
+            for char in current_text:
                 stdscr.addstr(char, curses.color_pair(4))
 
             stdscr.addstr(2,0,"Correct Translation: ")
